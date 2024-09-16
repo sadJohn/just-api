@@ -1,7 +1,7 @@
 {
   "name": "just-api",
   "scripts": {
-    "dev": "bun run --hot api/index.ts"
+    "dev": "bun run --hot api/app.ts"
   },
   "dependencies": {
     "@vercel/postgres": "^0.10.0",

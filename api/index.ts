@@ -1,18 +1,11 @@
-import { Hono } from "hono";
 import { handle } from "hono/vercel";
-import { getUsers } from "../db/queries/select";
 
-const app = new Hono().basePath("/api");
+import app from './app'
 
-export const config = {
-  runtime: "edge",
-};
+const handler = handle(app);
 
-app.get("/", async (c) => {
-  const users = await getUsers();
-  return c.json(users);
-});
-
-const server = process.env.MODE === "pro" ? handle(app) : app;
-
-export default server;
+export const GET = handler;
+export const POST = handler;
+export const PATCH = handler;
+export const PUT = handler;
+export const OPTIONS = handler;
