@@ -1,0 +1,12 @@
+{
+  "name": "just-api",
+  "scripts": {
+    "dev": "bun run --hot api/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.6.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
