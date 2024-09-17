@@ -1,15 +1,26 @@
 {
   "name": "just-api",
   "scripts": {
-    "dev": "bun run --hot api/app.ts"
+    "dev": "bun run --hot api/app.ts",
+    "db:generate": "bun drizzle-kit generate",
+    "db:migrate": "bun drizzle-kit migrate",
+    "db:update": "bun db:generate && bun db:migrate",
+    "db:seed": "bun db/seed.ts"
   },
   "dependencies": {
+    "@hono/zod-validator": "^0.2.2",
     "@vercel/postgres": "^0.10.0",
+    "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.5",
     "drizzle-orm": "^0.33.0",
-    "hono": "^4.6.1"
+    "drizzle-zod": "^0.5.1",
+    "hono": "^4.6.1",
+    "http-status-codes": "^2.3.0",
+    "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@faker-js/faker": "^9.0.1",
+    "@types/bcryptjs": "^2.4.6",
     "@types/bun": "latest",
     "drizzle-kit": "^0.24.2"
   }
