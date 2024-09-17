@@ -1,7 +1,7 @@
 import { Hono } from "hono";
-import usersRouter from "@/routers/users";
-import homeRouter from "@/routers/home";
-import { API_VERSION } from "@/constants";
+import usersRouter from "../routers/users";
+import homeRouter from "../routers/home";
+import { API_VERSION } from "../constants";
 
 const app = new Hono().basePath("/api");
 

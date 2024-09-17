@@ -13,7 +13,7 @@ import {
   USER_MODE_SIGNIN,
   USER_MODE_SIGNUP,
   USER_MODE_UPDATE,
-} from "@/constants";
+} from "../../constants";
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),

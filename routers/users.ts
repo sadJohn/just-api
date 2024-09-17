@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { userSchema, usersTable } from "@/db/schema";
-import { db } from "@/db";
+import { userSchema, usersTable } from "../db/schema";
+import { db } from "../db";
 import { StatusCodes } from "http-status-codes";
 import * as bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { PSIZE_DEFAULT } from "@/constants";
+import { PSIZE_DEFAULT } from "../constants";
 
 const usersRouter = new Hono();
 

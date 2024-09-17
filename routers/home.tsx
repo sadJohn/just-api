@@ -1,11 +1,11 @@
-import { API_VERSION } from "@/constants";
+import { API_VERSION } from "../constants";
 import {
   categoriesRelations,
   commentsRelations,
   postsRelations,
   tagsRelations,
   usersRelations,
-} from "@/db/schema";
+} from "../db/schema";
 import { Hono } from "hono";
 import { FC } from "hono/jsx";
 
