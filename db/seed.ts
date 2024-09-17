@@ -1,6 +1,6 @@
 import { sql, Table } from "drizzle-orm";
 
-import { db, DB } from "./index";
+import { db, DB } from ".";
 import * as schema from "./schema";
 import * as seeds from "./seeds";
 
