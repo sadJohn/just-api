@@ -1,14 +1,18 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import { userSchema, usersTable } from "../db/schema";
+import { JwtPayload, userSchema, usersTable } from "../db/schema";
 import { db } from "../db";
 import { StatusCodes } from "http-status-codes";
-import * as bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { PSIZE_DEFAULT } from "../constants";
+import { checkPermisson, getTableCount } from "../utils";
 
-const usersRouter = new Hono();
+const usersRouter = new Hono<{
+  Variables: {
+    jwtPayload: JwtPayload;
+  };
+}>();
 
 const usersQuerySchema = z.object({
   page: z.coerce.number().min(1).optional(),
@@ -16,11 +20,27 @@ const usersQuerySchema = z.object({
 });
 
 usersRouter.get("/", async (c) => {
+  const payload = c.get("jwtPayload");
+
+  const hasPermisson = checkPermisson(payload);
+  if (!hasPermisson) {
+    c.status(StatusCodes.UNAUTHORIZED);
+    return c.json({ message: "No permisson!" });
+  }
+
   const query = usersQuerySchema.safeParse(c.req.query());
   const psize = query.data?.psize ?? PSIZE_DEFAULT;
-  const page = query.data?.page ? query.data?.page - 1 : 0;
-  const users = await db.select().from(usersTable).limit(psize).offset(page);
-  return c.json(users);
+  const page = query.data?.page ?? 1;
+
+  const users = await db
+    .select()
+    .from(usersTable)
+    .limit(psize)
+    .offset((page - 1) * psize);
+
+  const count = await getTableCount(usersTable);
+
+  return c.json({ users, count });
 });
 
 usersRouter.get(
@@ -33,6 +53,13 @@ usersRouter.get(
   }),
   async (c) => {
     const userId = Number(c.req.param("userId"));
+    const payload = c.get("jwtPayload");
+
+    const hasPermisson = checkPermisson(payload);
+    if (!hasPermisson) {
+      c.status(StatusCodes.UNAUTHORIZED);
+      return c.json({ message: "No permisson!" });
+    }
 
     const users = await db
       .select()
@@ -45,30 +72,6 @@ usersRouter.get(
     }
 
     return c.json(users[0]);
-  }
-);
-
-usersRouter.post(
-  "/",
-  zValidator("json", userSchema.options[0], (result, c) => {
-    if (!result.success) {
-      c.status(StatusCodes.BAD_REQUEST);
-      return c.json({ message: "Invalid user data!" });
-    }
-  }),
-  async (c) => {
-    const user = c.req.valid("json");
-
-    const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);
-    const newUser = await db.insert(usersTable).values(user).returning({
-      userId: usersTable.id,
-      username: usersTable.username,
-      age: usersTable.age,
-      email: usersTable.email,
-    });
-    c.status(StatusCodes.CREATED);
-    return c.json(newUser);
   }
 );
 
@@ -88,6 +91,13 @@ usersRouter.put(
   }),
   async (c) => {
     const userId = Number(c.req.param("userId"));
+    const payload = c.get("jwtPayload");
+
+    const hasPermisson = checkPermisson(payload, userId);
+    if (!hasPermisson) {
+      c.status(StatusCodes.UNAUTHORIZED);
+      return c.json({ message: "No permisson!" });
+    }
 
     const user = c.req.valid("json");
     const updatedUser = await db
@@ -119,6 +129,14 @@ usersRouter.delete(
     }
   }),
   async (c) => {
+    const payload = c.get("jwtPayload");
+
+    const hasPermisson = checkPermisson(payload);
+    if (!hasPermisson) {
+      c.status(StatusCodes.UNAUTHORIZED);
+      return c.json({ message: "No permisson!" });
+    }
+
     const userId = Number(c.req.param("userId"));
 
     const deletedUsers = await db

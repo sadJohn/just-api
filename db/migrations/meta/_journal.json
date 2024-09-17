@@ -8,6 +8,13 @@
       "when": 1726537165255,
       "tag": "0000_lean_azazel",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1726559038838,
+      "tag": "0001_shiny_quentin_quire",
+      "breakpoints": true
     }
   ]
 }

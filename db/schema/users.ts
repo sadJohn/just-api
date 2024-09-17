@@ -1,6 +1,7 @@
 import { relations, InferSelectModel } from "drizzle-orm";
 import {
   integer,
+  pgEnum,
   pgTable,
   serial,
   timestamp,
@@ -10,10 +11,13 @@ import { postsTable } from "./posts";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import {
+  ROLE,
   USER_MODE_SIGNIN,
   USER_MODE_SIGNUP,
   USER_MODE_UPDATE,
 } from "../../constants";
+
+export const roleEnum = pgEnum("role", [ROLE.Admin, ROLE.Basic]);
 
 export const usersTable = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -21,6 +25,7 @@ export const usersTable = pgTable("users", {
   age: integer("age").notNull(),
   email: varchar("email", { length: 255 }).notNull().unique(),
   password: varchar("password", { length: 255 }).notNull(),
+  role: roleEnum("role").notNull().default(ROLE.Basic),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at")
     .notNull()
@@ -65,3 +70,4 @@ export const userSchema = z.discriminatedUnion("mode", [
 ]);
 export type UserSchema = z.infer<typeof userSchema>;
 export type SelectUserModal = InferSelectModel<typeof usersTable>;
+export type JwtPayload = Pick<SelectUserModal, "id" | "username" | "role">;
