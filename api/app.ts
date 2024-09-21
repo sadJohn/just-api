@@ -7,6 +7,7 @@ import { jwt } from "hono/jwt";
 import tagsRouter from "../routers/tags";
 import categoriesRouter from "../routers/categories";
 import postsRouter from "../routers/posts";
+import commentsRouter from "../routers/comments";
 
 const app = new Hono().basePath("/api");
 
@@ -25,6 +26,8 @@ app.route(`/${API_VERSION}/categories`, categoriesRouter);
 app.route(`/${API_VERSION}/tags`, tagsRouter);
 
 app.route(`/${API_VERSION}/posts`, postsRouter);
+
+app.route(`/${API_VERSION}/comments`, commentsRouter);
 
 app.route("/", homeRouter);
 

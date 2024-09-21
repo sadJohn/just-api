@@ -68,18 +68,15 @@ tagsRouter.put(
     const tagId = Number(c.req.param("tagId"));
 
     const tag = c.req.valid("json");
-    const updatedTags = await db
-      .update(tagsTable)
-      .set({ name: tag.name })
-      .where(eq(tagsTable.id, tagId))
-      .returning();
+    const updatedTag = (
+      await db
+        .update(tagsTable)
+        .set({ name: tag.name })
+        .where(eq(tagsTable.id, tagId))
+        .returning()
+    )[0];
 
-    if (updatedTags.length) {
-      return c.json({ data: updatedTags[0], message: "success" });
-    } else {
-      c.status(StatusCodes.BAD_REQUEST);
-      return c.json({ message: "Tag not found!" });
-    }
+    return c.json({ data: updatedTag, message: "success" });
   }
 );
 
@@ -98,17 +95,11 @@ tagsRouter.delete(
   async (c) => {
     const tagId = Number(c.req.param("tagId"));
 
-    const deletedTags = await db
-      .delete(tagsTable)
-      .where(eq(tagsTable.id, tagId))
-      .returning();
+    const deletedTag = (
+      await db.delete(tagsTable).where(eq(tagsTable.id, tagId)).returning()
+    )[0];
 
-    if (deletedTags.length) {
-      return c.json({ data: deletedTags[0], message: "success" });
-    } else {
-      c.status(StatusCodes.BAD_REQUEST);
-      return c.json({ message: "User not found!" });
-    }
+    return c.json({ data: deletedTag, message: "success" });
   }
 );
 

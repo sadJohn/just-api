@@ -21,28 +21,24 @@ authRouter.post(
     const user = c.req.valid("json");
 
     user.password = await genHashedPassword(user.password);
-    const newUsers = await db.insert(usersTable).values(user).returning({
-      id: usersTable.id,
-      username: usersTable.username,
-      age: usersTable.age,
-      email: usersTable.email,
-      role: usersTable.role,
+    const newUser = (
+      await db.insert(usersTable).values(user).returning({
+        id: usersTable.id,
+        username: usersTable.username,
+        age: usersTable.age,
+        email: usersTable.email,
+        role: usersTable.role,
+      })
+    )[0];
+
+    const token = genToken({
+      id: newUser.id,
+      username: newUser.username,
+      role: newUser.role,
     });
 
-    if (newUsers.length) {
-      const newUser = newUsers[0];
-      const token = genToken({
-        id: newUser.id,
-        username: newUser.username,
-        role: newUser.role,
-      });
-
-      c.status(StatusCodes.CREATED);
-      return c.json({ user: newUser, token });
-    } else {
-      c.status(StatusCodes.INTERNAL_SERVER_ERROR);
-      return c.json({ message: "Register failed!" });
-    }
+    c.status(StatusCodes.CREATED);
+    return c.json({ data: newUser, token });
   }
 );
 
@@ -57,30 +53,23 @@ authRouter.post(
   async (c) => {
     const { email, password } = c.req.valid("json");
 
-    const users = await db
-      .select()
-      .from(usersTable)
-      .where(eq(usersTable.email, email));
+    const user = (
+      await db.select().from(usersTable).where(eq(usersTable.email, email))
+    )[0];
 
-    if (users.length) {
-      const user = users[0];
-      const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await bcrypt.compare(password, user.password);
 
-      if (isMatch) {
-        const token = genToken({
-          id: user.id,
-          username: user.username,
-          role: user.role,
-        });
+    if (isMatch) {
+      const token = genToken({
+        id: user.id,
+        username: user.username,
+        role: user.role,
+      });
 
-        return c.json({ user, token });
-      } else {
-        c.status(StatusCodes.UNAUTHORIZED);
-        return c.json({ message: "Unauthenticated user!" });
-      }
+      return c.json({ data: user, token });
     } else {
-      c.status(StatusCodes.BAD_REQUEST);
-      return c.json({ message: "User not found!" });
+      c.status(StatusCodes.UNAUTHORIZED);
+      return c.json({ message: "Unauthenticated user!" });
     }
   }
 );

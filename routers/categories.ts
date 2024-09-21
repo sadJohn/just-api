@@ -42,20 +42,12 @@ categoriesRouter.post(
   async (c) => {
     const category = c.req.valid("json");
 
-    const newCategories = await db
-      .insert(categoriesTable)
-      .values(category)
-      .returning();
+    const newCategory = (
+      await db.insert(categoriesTable).values(category).returning()
+    )[0];
 
-    if (newCategories.length) {
-      const newCategory = newCategories[0];
-
-      c.status(StatusCodes.CREATED);
-      return c.json({ category: newCategory });
-    } else {
-      c.status(StatusCodes.INTERNAL_SERVER_ERROR);
-      return c.json({ message: "Create category failed!" });
-    }
+    c.status(StatusCodes.CREATED);
+    return c.json({ data: newCategory });
   }
 );
 
@@ -75,18 +67,15 @@ categoriesRouter.put(
     const categoryId = Number(c.req.param("categoryId"));
 
     const category = c.req.valid("json");
-    const updatedCategories = await db
-      .update(categoriesTable)
-      .set({ name: category.name })
-      .where(eq(categoriesTable.id, categoryId))
-      .returning();
+    const updatedCategory = (
+      await db
+        .update(categoriesTable)
+        .set({ name: category.name })
+        .where(eq(categoriesTable.id, categoryId))
+        .returning()
+    )[0];
 
-    if (updatedCategories.length) {
-      return c.json({ data: updatedCategories[0], message: "success" });
-    } else {
-      c.status(StatusCodes.BAD_REQUEST);
-      return c.json({ message: "Category not found!" });
-    }
+    return c.json({ data: updatedCategory, message: "success" });
   }
 );
 
@@ -109,17 +98,14 @@ categoriesRouter.delete(
   async (c) => {
     const categoryId = Number(c.req.param("categoryId"));
 
-    const deletedTags = await db
-      .delete(categoriesTable)
-      .where(eq(categoriesTable.id, categoryId))
-      .returning();
+    const deletedTag = (
+      await db
+        .delete(categoriesTable)
+        .where(eq(categoriesTable.id, categoryId))
+        .returning()
+    )[0];
 
-    if (deletedTags.length) {
-      return c.json({ data: deletedTags[0], message: "success" });
-    } else {
-      c.status(StatusCodes.BAD_REQUEST);
-      return c.json({ message: "User not found!" });
-    }
+    return c.json({ data: deletedTag, message: "success" });
   }
 );
 

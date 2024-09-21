@@ -1,14 +1,16 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import {
+  commentsTable,
   JwtPayload,
   postSchema,
   postsTable,
   postTagsTable,
+  SelectCommentModal,
 } from "../db/schema";
 import { db } from "../db";
 import { StatusCodes } from "http-status-codes";
-import { and, eq, notInArray } from "drizzle-orm";
+import { and, eq, notInArray, isNull, aliasedTable } from "drizzle-orm";
 import { z } from "zod";
 import { getPaginationInfo, getTableCount, checkPermisson } from "../utils";
 import { jwt } from "hono/jwt";
@@ -40,17 +42,11 @@ postsRouter.get(
   async (c) => {
     const postId = Number(c.req.param("postId"));
 
-    const posts = await db
-      .select()
-      .from(postsTable)
-      .where(eq(postsTable.id, postId));
+    const post = (
+      await db.select().from(postsTable).where(eq(postsTable.id, postId))
+    )[0];
 
-    if (!posts.length) {
-      c.status(StatusCodes.NOT_FOUND);
-      return c.json({ message: "Post not found!" });
-    }
-
-    return c.json({ data: posts[0], message: "success" });
+    return c.json({ data: post, message: "success" });
   }
 );
 
@@ -84,13 +80,8 @@ postsRouter.post(
       return { ...newPosts[0], tagIds: post.tagIds };
     });
 
-    if (newPost) {
-      c.status(StatusCodes.CREATED);
-      return c.json({ post: newPost });
-    } else {
-      c.status(StatusCodes.INTERNAL_SERVER_ERROR);
-      return c.json({ message: "Create post failed!" });
-    }
+    c.status(StatusCodes.CREATED);
+    return c.json({ post: newPost });
   }
 );
 
@@ -151,12 +142,7 @@ postsRouter.put(
       return { ...updatedPosts[0], tagIds: post.tagIds };
     });
 
-    if (newPost) {
-      return c.json({ data: newPost, message: "success" });
-    } else {
-      c.status(StatusCodes.BAD_REQUEST);
-      return c.json({ message: "User not found!" });
-    }
+    return c.json({ data: newPost, message: "success" });
   }
 );
 
@@ -186,18 +172,104 @@ postsRouter.delete(
       return c.json({ message: "No permisson!" });
     }
 
-    const deletedPosts = await db
-      .delete(postsTable)
-      .where(eq(postsTable.id, postId))
-      .returning();
+    const deletedPost = (
+      await db.delete(postsTable).where(eq(postsTable.id, postId)).returning()
+    )[0];
 
-    if (deletedPosts.length) {
-      return c.json({ data: deletedPosts[0], message: "success" });
-    } else {
-      c.status(StatusCodes.BAD_REQUEST);
-      return c.json({ message: "Delete post failed!" });
-    }
+    return c.json({ data: deletedPost, message: "success" });
   }
 );
+
+postsRouter.get("/:postId/comments/:commentId", async (c) => {
+  const postId = Number(c.req.param("postId"));
+  const commentId = Number(c.req.param("commentId"));
+  const { limit, offset } = getPaginationInfo(c.req.query());
+
+  const children = aliasedTable(commentsTable, "children");
+
+  const sub = db
+    .select()
+    .from(commentsTable)
+    .where(
+      and(
+        eq(commentsTable.postId, postId),
+        eq(commentsTable.parentId, commentId)
+      )
+    )
+    .limit(limit)
+    .offset(offset)
+    .as("comments");
+  const comments = (await db
+    .select()
+    .from(sub)
+    .leftJoin(children, eq(children.parentId, sub.id))) as {
+    comments: SelectCommentModal;
+    children?: SelectCommentModal;
+  }[];
+
+  const data = Object.values(
+    comments.reduce<
+      Record<number, { comments: SelectCommentModal; count: number }>
+    >((acc, cur) => {
+      const comments = cur.comments;
+      const children = cur.children;
+
+      if (!acc[comments.id]) {
+        acc[comments.id] = { comments, count: 0 };
+      }
+      if (children) {
+        acc[comments.id].count++;
+      }
+      return acc;
+    }, {})
+  );
+
+  return c.json({ data, message: "success" });
+});
+
+postsRouter.get("/:postId/comments", async (c) => {
+  const postId = Number(c.req.param("postId"));
+  const { limit, offset } = getPaginationInfo(c.req.query());
+
+  const children = aliasedTable(commentsTable, "children");
+
+  const sub = db
+    .select()
+    .from(commentsTable)
+    .where(
+      and(eq(commentsTable.postId, postId), isNull(commentsTable.parentId))
+    )
+    .limit(limit)
+    .offset(offset)
+    .as("comments");
+  const comments = (await db
+    .select()
+    .from(sub)
+    .leftJoin(children, eq(children.parentId, sub.id))) as {
+    comments: SelectCommentModal;
+    children?: SelectCommentModal;
+  }[];
+
+  console.log("comments: ", comments);
+
+  const data = Object.values(
+    comments.reduce<
+      Record<number, { comments: SelectCommentModal; count: number }>
+    >((acc, cur) => {
+      const comments = cur.comments;
+      const children = cur.children;
+
+      if (!acc[comments.id]) {
+        acc[comments.id] = { comments, count: 0 };
+      }
+      if (children) {
+        acc[comments.id].count++;
+      }
+      return acc;
+    }, {})
+  );
+
+  return c.json({ data, message: "success" });
+});
 
 export default postsRouter;

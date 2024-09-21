@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm";
+import { InferSelectModel, relations } from "drizzle-orm";
 import {
   AnyPgColumn,
   integer,
@@ -47,10 +47,10 @@ export const commentSchema = createInsertSchema(commentsTable, {
   userId: (schema) => schema.postId.min(1),
   content: (schema) => schema.content.min(1),
 }).pick({
-  id: true,
   userId: true,
   content: true,
   postId: true,
   parentId: true,
 });
 export type CommentSchema = z.infer<typeof commentSchema>;
+export type SelectCommentModal = InferSelectModel<typeof commentsTable>;

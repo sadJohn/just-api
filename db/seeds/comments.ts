@@ -13,11 +13,27 @@ const parentCommentsMock = async () => {
 
   const randomPosts = faker.helpers.arrayElements(postsData);
 
-  const data = randomPosts.map((post) => ({
-    content: faker.lorem.sentence({ min: 1, max: 20 }),
-    postId: post.id,
-    userId: faker.helpers.arrayElement(usersData).id,
-  }));
+  const data = randomPosts.reduce(
+    (
+      acc: {
+        content: string;
+        postId: number;
+        userId: number;
+      }[],
+      post
+    ) => {
+      const temp = Array(Math.floor(Math.random() * 3))
+        .fill(1)
+        .map(() => ({
+          content: faker.lorem.sentence({ min: 1, max: 20 }),
+          postId: post.id,
+          userId: faker.helpers.arrayElement(usersData).id,
+        }));
+      acc.push(...temp);
+      return acc;
+    },
+    []
+  );
 
   return data;
 };
@@ -30,12 +46,29 @@ const childCommentsMock = async () => {
 
   const randomComments = faker.helpers.arrayElements(commentsData);
 
-  const data = randomComments.map((comment) => ({
-    content: faker.lorem.sentence({ min: 1, max: 20 }),
-    postId: comment.postId,
-    userId: faker.helpers.arrayElement(usersData).id,
-    parentId: comment.id,
-  }));
+  const data = randomComments.reduce(
+    (
+      acc: {
+        content: string;
+        postId: number;
+        userId: number;
+        parentId: number;
+      }[],
+      comment
+    ) => {
+      const temp = Array(Math.floor(Math.random() * 3))
+        .fill(1)
+        .map(() => ({
+          content: faker.lorem.sentence({ min: 1, max: 20 }),
+          postId: comment.postId,
+          userId: faker.helpers.arrayElement(usersData).id,
+          parentId: comment.id,
+        }));
+      acc.push(...temp);
+      return acc;
+    },
+    []
+  );
   return data;
 };
 
