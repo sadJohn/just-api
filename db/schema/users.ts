@@ -46,6 +46,7 @@ const baseSchema = createInsertSchema(usersTable, {
   password: true,
   age: true,
   email: true,
+  role: true,
 });
 
 export const userSchema = z.discriminatedUnion("mode", [
@@ -66,6 +67,7 @@ export const userSchema = z.discriminatedUnion("mode", [
     id: z.number().min(1),
     username: baseSchema.shape.username,
     age: baseSchema.shape.age,
+    role: z.enum([ROLE.Admin, ROLE.Basic]),
   }),
 ]);
 export type UserSchema = z.infer<typeof userSchema>;

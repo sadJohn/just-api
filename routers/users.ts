@@ -5,8 +5,12 @@ import { db } from "../db";
 import { StatusCodes } from "http-status-codes";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { PSIZE_DEFAULT } from "../constants";
-import { checkPermisson, getTableCount } from "../utils";
+import {
+  getPaginationInfo,
+  getTableCount,
+  checkPermisson,
+  adminGuard,
+} from "../utils";
 
 const usersRouter = new Hono<{
   Variables: {
@@ -14,33 +18,14 @@ const usersRouter = new Hono<{
   };
 }>();
 
-const usersQuerySchema = z.object({
-  page: z.coerce.number().min(1).optional(),
-  psize: z.coerce.number().min(0).optional(),
-});
+usersRouter.get("/", adminGuard, async (c) => {
+  const { limit, offset } = getPaginationInfo(c.req.query());
 
-usersRouter.get("/", async (c) => {
-  const payload = c.get("jwtPayload");
-
-  const hasPermisson = checkPermisson(payload);
-  if (!hasPermisson) {
-    c.status(StatusCodes.UNAUTHORIZED);
-    return c.json({ message: "No permisson!" });
-  }
-
-  const query = usersQuerySchema.safeParse(c.req.query());
-  const psize = query.data?.psize ?? PSIZE_DEFAULT;
-  const page = query.data?.page ?? 1;
-
-  const users = await db
-    .select()
-    .from(usersTable)
-    .limit(psize)
-    .offset((page - 1) * psize);
+  const users = await db.select().from(usersTable).limit(limit).offset(offset);
 
   const count = await getTableCount(usersTable);
 
-  return c.json({ users, count });
+  return c.json({ data: users, count });
 });
 
 usersRouter.get(
@@ -53,9 +38,8 @@ usersRouter.get(
   }),
   async (c) => {
     const userId = Number(c.req.param("userId"));
-    const payload = c.get("jwtPayload");
 
-    const hasPermisson = checkPermisson(payload);
+    const hasPermisson = checkPermisson(c, userId);
     if (!hasPermisson) {
       c.status(StatusCodes.UNAUTHORIZED);
       return c.json({ message: "No permisson!" });
@@ -71,7 +55,7 @@ usersRouter.get(
       return c.json({ message: "User not found!" });
     }
 
-    return c.json(users[0]);
+    return c.json({ data: users[0], message: "success" });
   }
 );
 
@@ -91,28 +75,38 @@ usersRouter.put(
   }),
   async (c) => {
     const userId = Number(c.req.param("userId"));
+    const user = c.req.valid("json");
     const payload = c.get("jwtPayload");
 
-    const hasPermisson = checkPermisson(payload, userId);
+    let hasPermisson: boolean;
+    if (user.role && user.role !== payload.role) {
+      hasPermisson = checkPermisson(c);
+    } else {
+      hasPermisson = checkPermisson(c, userId);
+    }
     if (!hasPermisson) {
       c.status(StatusCodes.UNAUTHORIZED);
       return c.json({ message: "No permisson!" });
     }
 
-    const user = c.req.valid("json");
-    const updatedUser = await db
+    const updatedUsers = await db
       .update(usersTable)
-      .set({ username: user.username, age: user.age })
+      .set({
+        username: user.username,
+        age: user.age,
+        role: user.role,
+      })
       .where(eq(usersTable.id, userId))
       .returning({
-        userId: usersTable.id,
+        id: usersTable.id,
         username: usersTable.username,
         age: usersTable.age,
         email: usersTable.email,
+        role: usersTable.role,
       });
 
-    if (updatedUser.length) {
-      return c.json({ message: "success" });
+    if (updatedUsers.length) {
+      return c.json({ data: updatedUsers[0], message: "success" });
     } else {
       c.status(StatusCodes.BAD_REQUEST);
       return c.json({ message: "User not found!" });
@@ -129,15 +123,13 @@ usersRouter.delete(
     }
   }),
   async (c) => {
-    const payload = c.get("jwtPayload");
+    const userId = Number(c.req.param("userId"));
 
-    const hasPermisson = checkPermisson(payload);
+    const hasPermisson = checkPermisson(c, userId);
     if (!hasPermisson) {
       c.status(StatusCodes.UNAUTHORIZED);
       return c.json({ message: "No permisson!" });
     }
-
-    const userId = Number(c.req.param("userId"));
 
     const deletedUsers = await db
       .delete(usersTable)
@@ -145,7 +137,7 @@ usersRouter.delete(
       .returning();
 
     if (deletedUsers.length) {
-      return c.json({ message: "success" });
+      return c.json({ data: deletedUsers[0], message: "success" });
     } else {
       c.status(StatusCodes.BAD_REQUEST);
       return c.json({ message: "User not found!" });

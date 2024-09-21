@@ -1,3 +1,9 @@
+DO $$ BEGIN
+ CREATE TYPE "public"."role" AS ENUM('Admin', 'Basic');
+EXCEPTION
+ WHEN duplicate_object THEN null;
+END $$;
+--> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "categories" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"name" varchar(255) NOT NULL,
@@ -23,7 +29,7 @@ CREATE TABLE IF NOT EXISTS "post_to_tag" (
 CREATE TABLE IF NOT EXISTS "posts" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"title" varchar(255) NOT NULL,
-	"description" varchar(255),
+	"description" varchar(255) NOT NULL,
 	"content" text NOT NULL,
 	"user_id" integer NOT NULL,
 	"category_id" integer NOT NULL,
@@ -43,6 +49,7 @@ CREATE TABLE IF NOT EXISTS "users" (
 	"age" integer NOT NULL,
 	"email" varchar(255) NOT NULL,
 	"password" varchar(255) NOT NULL,
+	"role" "role" DEFAULT 'Basic' NOT NULL,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp NOT NULL,
 	CONSTRAINT "users_email_unique" UNIQUE("email")
